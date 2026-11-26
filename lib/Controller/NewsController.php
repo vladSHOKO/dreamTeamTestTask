@@ -7,6 +7,7 @@ namespace Dreamteam\Test\Controller;
 use Bitrix\Main\Context;
 use Bitrix\Main\Engine\ActionFilter\Attribute\Rule\DisablePrefilters;
 use Bitrix\Main\Engine\ActionFilter\Attribute\Rule\HttpMethod;
+use Bitrix\Main\Engine\ActionFilter\Authentication;
 use Bitrix\Main\Engine\ActionFilter\Csrf;
 use Bitrix\Main\Engine\AutoWire\BinderArgumentException;
 use Bitrix\Main\Engine\AutoWire\Parameter;
@@ -26,7 +27,6 @@ final class NewsController extends Controller
 {
     private const HTTP_CREATED = 201;
     private const HTTP_BAD_REQUEST = 400;
-    private const HTTP_FORBIDDEN = 403;
     private const HTTP_NOT_FOUND = 404;
     private const HTTP_INTERNAL_SERVER_ERROR = 500;
 
@@ -55,18 +55,12 @@ final class NewsController extends Controller
     }
 
     #[HttpMethod(['POST'])]
+    #[DisablePrefilters([Authentication::class, Csrf::class])]
     public function addAction(
         NewsService $newsService,
         AddNewRequest $request,
         ValidationService $validator,
     ): Json {
-        if (!$this->getCurrentUser()?->isAdmin()) {
-            return $this->errorResponse(
-                self::HTTP_FORBIDDEN,
-                Loc::getMessage('DREAMTEAM_TEST_NEWS_WRITE_FORBIDDEN'),
-            );
-        }
-
         $validation = $validator->validate($request);
         if (!$validation->isSuccess()) {
             return $this->errorResponse(self::HTTP_BAD_REQUEST, implode('; ', $validation->getErrorMessages()));
@@ -82,7 +76,7 @@ final class NewsController extends Controller
     }
 
     #[HttpMethod(['GET'])]
-    #[DisablePrefilters([Csrf::class])]
+    #[DisablePrefilters([Authentication::class, Csrf::class])]
     public function listAction(NewsService $newsService, ListNewsRequest $request): Json
     {
         try {
@@ -95,7 +89,7 @@ final class NewsController extends Controller
     }
 
     #[HttpMethod(['GET'])]
-    #[DisablePrefilters([Csrf::class])]
+    #[DisablePrefilters([Authentication::class, Csrf::class])]
     public function detailAction(NewsService $newsService, int $id): Json
     {
         try {
