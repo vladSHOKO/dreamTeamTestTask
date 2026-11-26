@@ -3,6 +3,7 @@
 use Bitrix\Iblock\IblockTable;
 use Bitrix\Iblock\TypeLanguageTable;
 use Bitrix\Iblock\TypeTable;
+use Bitrix\Main\Config\Configuration;
 use Bitrix\Main\IO\File;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
@@ -82,15 +83,43 @@ class dreamteam_test extends CModule
 
     public function installFiles(): bool
     {
-        return CopyDirFiles(
+        if (!CopyDirFiles(
             __DIR__ . '/routes/' . self::ROUTES_FILE,
             Loader::getDocumentRoot() . '/local/routes/' . self::ROUTES_FILE
-        );
+        )) {
+            return false;
+        }
+
+        $this->setRouteEnabled(true);
+        return true;
     }
 
     public function uninstallFiles(): bool
     {
+        $this->setRouteEnabled(false);
         return File::deleteFile(Loader::getDocumentRoot() . '/local/routes/' . self::ROUTES_FILE);
+    }
+
+    private function setRouteEnabled(bool $enabled): void
+    {
+        $settingsPath = Loader::getLocal(Configuration::CONFIGURATION_FILE);
+        $settings = Configuration::getInstanceByPath($settingsPath);
+        $routing = $settings->get('routing') ?? [];
+        $files = $routing['config'] ?? [];
+        if (in_array(self::ROUTES_FILE, $files, true) === $enabled) {
+            return;
+        }
+
+        $routing['config'] = $enabled
+            ? [...$files, self::ROUTES_FILE]
+            : array_values(array_diff($files, [self::ROUTES_FILE]));
+
+        if ($settings->isReadonly('routing')) {
+            $settings->addReadonly('routing', $routing);
+        } else {
+            $settings->add('routing', $routing);
+        }
+        $settings->saveConfiguration();
     }
 
     private function createIblockIfNotExist(): ?int
