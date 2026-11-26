@@ -1,15 +1,18 @@
 <?php
 
 use Bitrix\Iblock\IblockTable;
+use Bitrix\Iblock\TypeLanguageTable;
 use Bitrix\Iblock\TypeTable;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\ModuleManager;
 
+
 class dreamteam_test extends CModule
 {
     private const IBLOCK_TYPE = 'content';
     private const IBLOCK_CODE = 'news';
+    private const IBLOCK_API_CODE = 'DreamteamTestNews';
 
     public function __construct()
     {
@@ -20,7 +23,7 @@ class dreamteam_test extends CModule
         $this->MODULE_VERSION_DATE = $arModuleVersion['VERSION_DATE'];
         $this->MODULE_NAME = Loc::getMessage('DREAMTEAM_TEST_MODULE_NAME');
         $this->MODULE_DESCRIPTION = Loc::getMessage('DREAMTEAM_TEST_MODULE_DESCRIPTION');
-        $this->PARTNER_NAME = 'Vladislav Kuzminov';
+        $this->PARTNER_NAME = Loc::getMessage('DREAMTEAM_TEST_PARTNER_NAME');
     }
 
     public function DoInstall()
@@ -85,24 +88,15 @@ class dreamteam_test extends CModule
             return null;
         }
 
-        if (!TypeTable::getByPrimary(self::IBLOCK_TYPE)->fetch()) {
-            $type = new CIBlockType();
-            if (!$type->Add([
-                'ID' => self::IBLOCK_TYPE,
-                'LANG' => [
-                    'ru' => ['NAME' => Loc::getMessage('DREAMTEAM_IBLOCK_TYPE_NAME')],
-                    'en' => ['NAME' => 'Content'],
-                ],
-            ])) {
-                $APPLICATION->ThrowException($type->LAST_ERROR);
-                return null;
-            }
+        if (!TypeTable::getByPrimary(self::IBLOCK_TYPE)->fetch() && !$this->createIblockType()) {
+            return null;
         }
 
         $iblock = new CIBlock();
         $iblockId = $iblock->Add([
             'IBLOCK_TYPE_ID' => self::IBLOCK_TYPE,
             'CODE' => self::IBLOCK_CODE,
+            'API_CODE' => self::IBLOCK_API_CODE,
             'NAME' => Loc::getMessage('DREAMTEAM_TEST_IBLOCK_NAME'),
             'LID' => [$siteId],
         ]);
@@ -112,5 +106,26 @@ class dreamteam_test extends CModule
         }
 
         return (int) $iblockId;
+    }
+
+    private function createIblockType(): bool
+    {
+        global $APPLICATION;
+
+        $result = TypeTable::add(['ID' => self::IBLOCK_TYPE]);
+        if ($result->isSuccess()) {
+            $result = TypeLanguageTable::add([
+                'IBLOCK_TYPE_ID' => self::IBLOCK_TYPE,
+                'LANGUAGE_ID' => 'ru',
+                'NAME' => Loc::getMessage('DREAMTEAM_IBLOCK_TYPE_NAME'),
+            ]);
+        }
+
+        if (!$result->isSuccess()) {
+            $APPLICATION->ThrowException(implode("\n", $result->getErrorMessages()));
+            return false;
+        }
+
+        return true;
     }
 }
