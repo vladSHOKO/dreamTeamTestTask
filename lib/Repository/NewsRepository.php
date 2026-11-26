@@ -9,14 +9,15 @@ use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\ORM\Data\AddResult;
 use Bitrix\Main\Type\DateTime;
+use Dreamteam\Test\Dto\NewsDto;
 use InvalidArgumentException;
 use RuntimeException;
 
 final class NewsRepository
 {
-    private const FIELDS = ['ID', 'NAME', 'CODE', 'PREVIEW_TEXT', 'DATE_CREATE'];
+    private const FIELDS = ['ID', 'NAME', 'PREVIEW_TEXT', 'DATE_CREATE'];
 
-    public function findById(int $id): ?array
+    public function findById(int $id): ?NewsDto
     {
         $dataClass = $this->getElementDataClass();
         $news = $dataClass::query()
@@ -24,9 +25,12 @@ final class NewsRepository
             ->where('ID', $id)
             ->fetch();
 
-        return $news ?: null;
+        return $news ? $this->toDto($news) : null;
     }
 
+    /**
+     * @return array<int, NewsDto>
+     */
     public function getList(
         ?DateTime $dateFrom = null,
         ?DateTime $dateToExclusive = null,
@@ -53,7 +57,7 @@ final class NewsRepository
             $query->whereLike('NAME', '%' . addcslashes($name, '\\%_') . '%');
         }
 
-        return $query->fetchAll();
+        return array_map($this->toDto(...), $query->fetchAll());
     }
 
     public function add(string $name, string $code, string $description): AddResult
@@ -65,6 +69,16 @@ final class NewsRepository
             'CODE' => $code,
             'PREVIEW_TEXT' => $description,
         ]);
+    }
+
+    private function toDto(array $news): NewsDto
+    {
+        return new NewsDto(
+            id: (int) $news['ID'],
+            name: $news['NAME'],
+            description: $news['PREVIEW_TEXT'] ?? '',
+            dateCreate: $news['DATE_CREATE'],
+        );
     }
 
     private function getElementDataClass(): string
