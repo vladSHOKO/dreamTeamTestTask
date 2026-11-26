@@ -16,6 +16,7 @@ use RuntimeException;
 final class NewsRepository
 {
     private const FIELDS = ['ID', 'NAME', 'PREVIEW_TEXT', 'DATE_CREATE'];
+    private const CACHE_TTL = 86400;
 
     public function findById(int $id): ?NewsDto
     {
@@ -23,6 +24,7 @@ final class NewsRepository
         $news = $dataClass::query()
             ->setSelect(self::FIELDS)
             ->where('ID', $id)
+            ->setCacheTtl(self::CACHE_TTL)
             ->fetch();
 
         return $news ? $this->toDto($news) : null;
@@ -45,7 +47,8 @@ final class NewsRepository
         $query = $dataClass::query()
             ->setSelect(self::FIELDS)
             ->setOrder(['DATE_CREATE' => 'DESC', 'ID' => 'DESC'])
-            ->setLimit($limit);
+            ->setLimit($limit)
+            ->setCacheTtl(self::CACHE_TTL);
 
         if ($dateFrom !== null) {
             $query->where('DATE_CREATE', '>=', $dateFrom);
