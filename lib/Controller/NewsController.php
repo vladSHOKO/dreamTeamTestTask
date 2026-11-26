@@ -92,6 +92,10 @@ final class NewsController extends Controller
     #[DisablePrefilters([Authentication::class, Csrf::class])]
     public function detailAction(NewsService $newsService, int $id): Json
     {
+        if ($id <= 0) {
+            return $this->errorResponse(self::HTTP_BAD_REQUEST, Loc::getMessage('DREAMTEAM_TEST_NEWS_INVALID_ID'));
+        }
+
         try {
             $news = $newsService->findById($id);
         } catch (Throwable $exception) {
