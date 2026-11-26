@@ -3,6 +3,7 @@
 use Bitrix\Iblock\IblockTable;
 use Bitrix\Iblock\TypeLanguageTable;
 use Bitrix\Iblock\TypeTable;
+use Bitrix\Main\IO\File;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\ModuleManager;
@@ -13,6 +14,7 @@ class dreamteam_test extends CModule
     private const IBLOCK_TYPE = 'content';
     private const IBLOCK_CODE = 'news';
     private const IBLOCK_API_CODE = 'DreamteamTestNews';
+    private const ROUTES_FILE = 'dreamteam.test.php';
 
     public function __construct()
     {
@@ -26,7 +28,7 @@ class dreamteam_test extends CModule
         $this->PARTNER_NAME = Loc::getMessage('DREAMTEAM_TEST_PARTNER_NAME');
     }
 
-    public function DoInstall()
+    public function doInstall()
     {
         global $APPLICATION;
 
@@ -39,10 +41,15 @@ class dreamteam_test extends CModule
             return false;
         }
 
+        if (!$this->installFiles()) {
+            $APPLICATION->ThrowException(Loc::getMessage('DREAMTEAM_TEST_ERROR_INSTALL_ROUTES'));
+            return false;
+        }
+
         ModuleManager::registerModule($this->MODULE_ID);
     }
 
-    public function DoUninstall()
+    public function doUninstall()
     {
         global $APPLICATION;
 
@@ -65,7 +72,25 @@ class dreamteam_test extends CModule
             return false;
         }
 
+        if (!$this->uninstallFiles()) {
+            $APPLICATION->ThrowException(Loc::getMessage('DREAMTEAM_TEST_ERROR_UNINSTALL_ROUTES'));
+            return false;
+        }
+
         ModuleManager::unRegisterModule($this->MODULE_ID);
+    }
+
+    public function installFiles(): bool
+    {
+        return CopyDirFiles(
+            __DIR__ . '/routes/' . self::ROUTES_FILE,
+            Loader::getDocumentRoot() . '/local/routes/' . self::ROUTES_FILE
+        );
+    }
+
+    public function uninstallFiles(): bool
+    {
+        return File::deleteFile(Loader::getDocumentRoot() . '/local/routes/' . self::ROUTES_FILE);
     }
 
     private function createIblockIfNotExist(): ?int
