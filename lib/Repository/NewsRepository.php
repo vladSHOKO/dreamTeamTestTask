@@ -24,6 +24,7 @@ final class NewsRepository
         $news = $dataClass::query()
             ->setSelect(self::FIELDS)
             ->where('ID', $id)
+            ->where('ACTIVE', 'Y')
             ->setCacheTtl(self::CACHE_TTL)
             ->fetch();
 
@@ -46,6 +47,7 @@ final class NewsRepository
         $dataClass = $this->getElementDataClass();
         $query = $dataClass::query()
             ->setSelect(self::FIELDS)
+            ->where('ACTIVE', 'Y')
             ->setOrder(['DATE_CREATE' => 'DESC', 'ID' => 'DESC'])
             ->setLimit($limit)
             ->setCacheTtl(self::CACHE_TTL);
