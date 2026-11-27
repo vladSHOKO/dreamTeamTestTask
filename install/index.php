@@ -102,8 +102,12 @@ class dreamteam_test extends CModule
 
     private function setRouteEnabled(bool $enabled): void
     {
-        $settingsPath = Loader::getLocal(Configuration::CONFIGURATION_FILE);
-        $settings = Configuration::getInstanceByPath($settingsPath);
+        $extraPath = Loader::getLocal('.settings_extra.php');
+        if ($extraPath !== false && isset((require $extraPath)['routing'])) {
+            return;
+        }
+
+        $settings = Configuration::getInstance();
         $routing = $settings->get('routing') ?? [];
         $files = $routing['config'] ?? [];
         if (in_array(self::ROUTES_FILE, $files, true) === $enabled) {
@@ -114,7 +118,8 @@ class dreamteam_test extends CModule
             ? [...$files, self::ROUTES_FILE]
             : array_values(array_diff($files, [self::ROUTES_FILE]));
 
-        if ($settings->isReadonly('routing')) {
+        $settingsPath = Loader::getLocal(Configuration::CONFIGURATION_FILE);
+        if (!empty((require $settingsPath)['routing']['readonly'])) {
             $settings->addReadonly('routing', $routing);
         } else {
             $settings->add('routing', $routing);
